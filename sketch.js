@@ -1,3 +1,4 @@
+//creating global variables to use in entire code.
 var PLAY = 1;
 var END = 0;
 var gameState = PLAY;
@@ -11,10 +12,12 @@ var obstaclesGroup, obstacle1, obstacle2, obstacle3, obstacle4, obstacle5, obsta
 var score=0;
 
 var gameOver, restart;
+var jumpSound , checkPointSound, dieSound;
 
 localStorage["HighestScore"] = 0;
 
 function preload(){
+  //loading all images or animations.
   trex_running =   loadAnimation("trex1.png","trex3.png","trex4.png");
   trex_collided = loadAnimation("trex_collided.png");
   
@@ -31,70 +34,103 @@ function preload(){
   
   gameOverImg = loadImage("gameOver.png");
   restartImg = loadImage("restart.png");
+
+  jumpSound = loadSound("jump.mp3")
+  dieSound = loadSound("die.mp3")
+  checkPointSound = loadSound("checkPoint.mp3")
+
 }
 
 function setup() {
   createCanvas(600, 200);
   
+  //creating dino sprite - playing char
   trex = createSprite(50,180,20,50);
-  
   trex.addAnimation("running", trex_running);
   trex.addAnimation("collided", trex_collided);
   trex.scale = 0.5;
   
-  ground = createSprite(200,180,400,20);
+  //creating ground
+  ground = createSprite(300,180,600,20);
   ground.addImage("ground",groundImage);
   ground.x = ground.width /2;
   ground.velocityX = -(6 + 3*score/100);
-  
+
+  //creting other invisible ground
+  invisibleGround = createSprite(300,190,600,10);
+  invisibleGround.visible = false;
+
+  //game end sprites
   gameOver = createSprite(300,100);
   gameOver.addImage(gameOverImg);
-  
+  gameOver.scale = 0.5;
+  gameOver.visible = false;
+
   restart = createSprite(300,140);
   restart.addImage(restartImg);
-  
-  gameOver.scale = 0.5;
   restart.scale = 0.5;
-
-  gameOver.visible = false;
   restart.visible = false;
   
-  invisibleGround = createSprite(200,190,400,10);
-  invisibleGround.visible = false;
-  
-  cloudsGroup = new Group();
+  //creating groups
+  cloudsGroup = createGroup();
   obstaclesGroup = new Group();
   
   score = 0;
+
+  //trex.debug = true;
+  //trex.setCollider("rectangle", 0, 0, 100, 100);
+
 }
 
 function draw() {
-  //trex.debug = true;
-  background('pink');
-  text("Score: "+ score, 500,50);
-  
+  //background color to give color, also to stop duplicates
+  background('lightgreen');
+
+  //Displaying score
+  text("Score: "+ score, 500,30);
+  fill('red');
+  textStyle(ITALIC);
+  text("high score:"+localStorage["HighestScore"], 30, 30)
+
+  //Gamestarts
   if (gameState===PLAY){
-    score = score + Math.round(getFrameRate()/60);
-    ground.velocityX = -(6 + 3*score/100);
-  
+
+    //dino jumping
     if(keyDown("space") && trex.y >= 159) {
       trex.velocityY = -12;
+      jumpSound.play();
     }
-  
-    trex.velocityY = trex.velocityY + 0.8
-  
+    //dino gravity
+    trex.velocityY = trex.velocityY + 0.8;
+    //for dino standing
+    trex.collide(invisibleGround);
+
+    //creating infinite screen- ground
     if (ground.x < 0){
       ground.x = ground.width/2;
     }
-  
-    trex.collide(invisibleGround);
+
+    //creating other objects- NPC
     spawnClouds();
     spawnObstacles();
-  
+
+    //score calculation 
+    score = score + Math.round(getFrameRate()/60);
+    //score sound
+    if(score>0 && score%100 === 0){
+      checkPointSound.play() 
+    }
+    //game adaptivity with score
+    ground.velocityX = -(6 + 3*score/100);
+
+    //ending rule
     if(obstaclesGroup.isTouching(trex)){
         gameState = END;
+        dieSound.play()
     }
+
   }
+  //GameEnds & thier aspects
   else if (gameState === END) {
     gameOver.visible = true;
     restart.visible = true;
@@ -117,7 +153,7 @@ function draw() {
     }
   }
   
-  
+  //we need sprites in all states of this game.
   drawSprites();
 }
 
@@ -188,6 +224,7 @@ function reset(){
   if(localStorage["HighestScore"]<score){
     localStorage["HighestScore"] = score;
   }
+  console.log("Highest Score is:");
   console.log(localStorage["HighestScore"]);
   
   score = 0;
